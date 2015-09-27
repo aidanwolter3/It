@@ -7,13 +7,29 @@ extern int val;
 void write_program_string(string program_str);
 string build_program_string(string program_str, int val);
 
-int main(int argc, char *argv[]) {
-  cout << val << endl;
+int val = 0;
 
-  int new_val = val+1;
+int main(int argc, char *argv[]) {
+
+  //output the current value and prompt for the new value
+  cout << val << endl;
+  cout << "enter a new value: ";
+  cin >> val;
+  string new_val_str = "int val = " + to_string(val) + ";\n";
+
+  //replace the 10th line
+  size_t line_start = 0;
+  size_t line_end = 0;
+  int line_to_edit = 9;
+  for(int i = 0; i < line_to_edit; i++) {
+    line_start = program_str.find("\n", line_start);
+    line_start++;
+  }
+  line_end = program_str.find("\n", line_start);
+  program_str.replace(line_start, line_end-line_start, new_val_str);
 
   string program_str_full;
-  program_str_full = build_program_string(program_str, new_val);
+  program_str_full = build_program_string(program_str, val);
   write_program_string(program_str_full);
   return 0;
 }
@@ -56,7 +72,6 @@ string build_program_string(string program_str, int val) {
 
   string program_str_full;
   program_str_full += actual_program_str + "\n";
-  program_str_full += "int val = " + to_string(val) + ";\n\n";
   program_str_full += "string program_str = \\\"\\\"\n";
 
   //for all strings to a newline

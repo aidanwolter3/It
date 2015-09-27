@@ -6,7 +6,6 @@ f_in_name = 'main.cpp'
 program_string = ''
 program_string_string = ''
 middle_stuff = ''
-middle_stuff += "int val = 0;\n"
 middle_stuff += "string program_str = \"\"\n"
 
 f_in = File.open(f_in_name, 'r')
