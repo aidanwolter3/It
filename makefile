@@ -1,2 +1,3 @@
 all:
-	g++-4.9 main.cpp -o it -std=c++11
+	./conv.rb
+	g++-4.9 collected.cpp -o it -std=c++11
