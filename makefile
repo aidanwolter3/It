@@ -1,3 +1,3 @@
 all:
-	./conv.rb
-	g++-4.9 collected.cpp -o it -std=c++11
+	./compile.rb
+	g++-4.9 compiled.cpp -o it -std=c++11
