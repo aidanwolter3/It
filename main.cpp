@@ -145,11 +145,10 @@ int main(int argc, char *argv[]) {
         //go back to base mode
         if(c == 27) {
           mode = mode_base;
-          continue;
         }
 
         //handle newlines by scrolling up and splitting lines
-        if(c == '\r') {
+        else if(c == '\r') {
           string line_start = lines[cur_file_posy].substr(0, curx);
           string line_end = lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);
 
@@ -182,19 +181,65 @@ int main(int argc, char *argv[]) {
             addstr(lines[cur_file_posy].c_str());
             move(cury, 0);
           }
-
-          continue;
         }
 
-        //add the character to the line
-        string line_end = (char)c + lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);
-        lines[cur_file_posy] = lines[cur_file_posy].substr(0, curx) + line_end;
-        move(cury, curx);
-        addstr(line_end.c_str());
+        //delete or backspace
+        else if(c == 127 || c == 8) {
+          if(curx > 0) {
+            string line = lines[cur_file_posy];
+            lines[cur_file_posy] = line.substr(0, curx-1) + line.substr(curx, line.size()-curx);
+            cur_file_posx--;
+            curx--;
+            move(cury, curx);
+            delch();
+          }
+          else if(cur_file_posy > 0) {
+            int new_posx = lines[cur_file_posy-1].size();
+            string bigger_line = lines[cur_file_posy-1] + lines[cur_file_posy];
+            lines[cur_file_posy-1] = bigger_line;
+            lines.erase(lines.begin()+cur_file_posy);
 
-        curx++;
-        cur_file_posx = curx;
-        move(cury, curx);
+            if(cury > 0) {
+
+              //reprint all lines after
+              for(int i = cur_file_posy-1; i < lines.size(); i++) {
+                if(i >= winy) {
+                  break;
+                }
+                move(cury+i-cur_file_posy, 0);
+                clrtoeol();
+                addstr(lines[i].c_str());
+              }
+
+              //move the cursor
+              cur_file_posy--;
+              cury--;
+              move(cury, new_posx);
+              cur_file_posx = new_posx;
+            }
+            else {
+              move(cury, 0);
+              clrtoeol();
+              addstr(lines[cur_file_posy].c_str());
+              move(cury, new_posx);
+              cur_file_posx = new_posx;
+            }
+          }
+        }
+
+        //regular character
+        else {
+
+          //add the character to the line
+          string line_end = (char)c + lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);
+          lines[cur_file_posy] = lines[cur_file_posy].substr(0, curx) + line_end;
+          move(cury, curx);
+          addstr(line_end.c_str());
+
+          curx++;
+          cur_file_posx = curx;
+          move(cury, curx);
+        }
 
         break;
       }

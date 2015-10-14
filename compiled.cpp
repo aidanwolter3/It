@@ -427,11 +427,10 @@ int main(int argc, char *argv[]) {
         //go back to base mode
         if(c == 27) {
           mode = mode_base;
-          continue;
         }
 
         //handle newlines by scrolling up and splitting lines
-        if(c == '\r') {
+        else if(c == '\r') {
           string line_start = lines[cur_file_posy].substr(0, curx);
           string line_end = lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);
 
@@ -464,19 +463,65 @@ int main(int argc, char *argv[]) {
             addstr(lines[cur_file_posy].c_str());
             move(cury, 0);
           }
-
-          continue;
         }
 
-        //add the character to the line
-        string line_end = (char)c + lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);
-        lines[cur_file_posy] = lines[cur_file_posy].substr(0, curx) + line_end;
-        move(cury, curx);
-        addstr(line_end.c_str());
+        //delete or backspace
+        else if(c == 127 || c == 8) {
+          if(curx > 0) {
+            string line = lines[cur_file_posy];
+            lines[cur_file_posy] = line.substr(0, curx-1) + line.substr(curx, line.size()-curx);
+            cur_file_posx--;
+            curx--;
+            move(cury, curx);
+            delch();
+          }
+          else if(cur_file_posy > 0) {
+            int new_posx = lines[cur_file_posy-1].size();
+            string bigger_line = lines[cur_file_posy-1] + lines[cur_file_posy];
+            lines[cur_file_posy-1] = bigger_line;
+            lines.erase(lines.begin()+cur_file_posy);
 
-        curx++;
-        cur_file_posx = curx;
-        move(cury, curx);
+            if(cury > 0) {
+
+              //reprint all lines after
+              for(int i = cur_file_posy-1; i < lines.size(); i++) {
+                if(i >= winy) {
+                  break;
+                }
+                move(cury+i-cur_file_posy, 0);
+                clrtoeol();
+                addstr(lines[i].c_str());
+              }
+
+              //move the cursor
+              cur_file_posy--;
+              cury--;
+              move(cury, new_posx);
+              cur_file_posx = new_posx;
+            }
+            else {
+              move(cury, 0);
+              clrtoeol();
+              addstr(lines[cur_file_posy].c_str());
+              move(cury, new_posx);
+              cur_file_posx = new_posx;
+            }
+          }
+        }
+
+        //regular character
+        else {
+
+          //add the character to the line
+          string line_end = (char)c + lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);
+          lines[cur_file_posy] = lines[cur_file_posy].substr(0, curx) + line_end;
+          move(cury, curx);
+          addstr(line_end.c_str());
+
+          curx++;
+          cur_file_posx = curx;
+          move(cury, curx);
+        }
 
         break;
       }
@@ -658,11 +703,10 @@ string program_str = ""
 "        //go back to base mode\n"
 "        if(c == 27) {\n"
 "          mode = mode_base;\n"
-"          continue;\n"
 "        }\n"
 "\n"
 "        //handle newlines by scrolling up and splitting lines\n"
-"        if(c == '\\r') {\n"
+"        else if(c == '\\r') {\n"
 "          string line_start = lines[cur_file_posy].substr(0, curx);\n"
 "          string line_end = lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);\n"
 "\n"
@@ -695,19 +739,65 @@ string program_str = ""
 "            addstr(lines[cur_file_posy].c_str());\n"
 "            move(cury, 0);\n"
 "          }\n"
-"\n"
-"          continue;\n"
 "        }\n"
 "\n"
-"        //add the character to the line\n"
-"        string line_end = (char)c + lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);\n"
-"        lines[cur_file_posy] = lines[cur_file_posy].substr(0, curx) + line_end;\n"
-"        move(cury, curx);\n"
-"        addstr(line_end.c_str());\n"
+"        //delete or backspace\n"
+"        else if(c == 127 || c == 8) {\n"
+"          if(curx > 0) {\n"
+"            string line = lines[cur_file_posy];\n"
+"            lines[cur_file_posy] = line.substr(0, curx-1) + line.substr(curx, line.size()-curx);\n"
+"            cur_file_posx--;\n"
+"            curx--;\n"
+"            move(cury, curx);\n"
+"            delch();\n"
+"          }\n"
+"          else if(cur_file_posy > 0) {\n"
+"            int new_posx = lines[cur_file_posy-1].size();\n"
+"            string bigger_line = lines[cur_file_posy-1] + lines[cur_file_posy];\n"
+"            lines[cur_file_posy-1] = bigger_line;\n"
+"            lines.erase(lines.begin()+cur_file_posy);\n"
 "\n"
-"        curx++;\n"
-"        cur_file_posx = curx;\n"
-"        move(cury, curx);\n"
+"            if(cury > 0) {\n"
+"\n"
+"              //reprint all lines after\n"
+"              for(int i = cur_file_posy-1; i < lines.size(); i++) {\n"
+"                if(i >= winy) {\n"
+"                  break;\n"
+"                }\n"
+"                move(cury+i-cur_file_posy, 0);\n"
+"                clrtoeol();\n"
+"                addstr(lines[i].c_str());\n"
+"              }\n"
+"\n"
+"              //move the cursor\n"
+"              cur_file_posy--;\n"
+"              cury--;\n"
+"              move(cury, new_posx);\n"
+"              cur_file_posx = new_posx;\n"
+"            }\n"
+"            else {\n"
+"              move(cury, 0);\n"
+"              clrtoeol();\n"
+"              addstr(lines[cur_file_posy].c_str());\n"
+"              move(cury, new_posx);\n"
+"              cur_file_posx = new_posx;\n"
+"            }\n"
+"          }\n"
+"        }\n"
+"\n"
+"        //regular character\n"
+"        else {\n"
+"\n"
+"          //add the character to the line\n"
+"          string line_end = (char)c + lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);\n"
+"          lines[cur_file_posy] = lines[cur_file_posy].substr(0, curx) + line_end;\n"
+"          move(cury, curx);\n"
+"          addstr(line_end.c_str());\n"
+"\n"
+"          curx++;\n"
+"          cur_file_posx = curx;\n"
+"          move(cury, curx);\n"
+"        }\n"
 "\n"
 "        break;\n"
 "      }\n"
