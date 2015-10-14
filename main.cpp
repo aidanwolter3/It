@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
           else if(c == 'j') {
             if(cury < winy-1) {
               cur_file_posy++;
-              cury = cur_file_posy;
+              cury++;
             }
             else if(cur_file_posy < lines.size()) {
               scroll(stdscr);
@@ -103,18 +103,23 @@ int main(int argc, char *argv[]) {
               move(cury, 0);
               addstr(lines[cur_file_posy].c_str());
             }
+
+            //ensure we are placed correctly on the x axis
             curx = cur_file_posx;
           }
           else if(c == 'k') {
             if(cury > 0) {
               cur_file_posy--;
-              cury = cur_file_posy;
+              cury--;
             }
             else if(cur_file_posy > 0) {
               scrl(-1);
               cur_file_posy--;
+              move(cury, 0);
               addstr(lines[cur_file_posy].c_str());
             }
+
+            //ensure we are placed correctly on the x axis
             curx = cur_file_posx;
           }
           else if(c == 'l') {
@@ -125,8 +130,8 @@ int main(int argc, char *argv[]) {
           }
 
           //restrict the cursor's x coordinate to the length of the string
-          if(curx >= lines[cury].size()) {
-            curx = lines[cury].size();
+          if(curx >= lines[cur_file_posy].size()) {
+            curx = lines[cur_file_posy].size();
           }
           move(cury, curx);
         }
@@ -143,7 +148,20 @@ int main(int argc, char *argv[]) {
           continue;
         }
 
-        addch(c);
+        //handle newlines by scrolling up and splitting lines
+        if(c == '\r') {
+          continue;
+        }
+
+        //add the character to the line
+        string line_end = (char)c + lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);
+        lines[cur_file_posy] = lines[cur_file_posy].substr(0, curx) + line_end;
+        move(cury, curx);
+        addstr(line_end.c_str());
+
+        curx++;
+        cur_file_posx = curx;
+        move(cury, curx);
 
         break;
       }
