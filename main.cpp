@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
               cur_file_posy++;
               cury++;
             }
-            else if(cur_file_posy < lines.size()) {
+            else if(cur_file_posy < lines.size()-1) {
               scroll(stdscr);
               cur_file_posy++;
               move(cury, 0);
@@ -150,6 +150,39 @@ int main(int argc, char *argv[]) {
 
         //handle newlines by scrolling up and splitting lines
         if(c == '\r') {
+          string line_start = lines[cur_file_posy].substr(0, curx);
+          string line_end = lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);
+
+          //rewrite the current line
+          lines[cur_file_posy] = line_start;
+          clrtoeol();
+
+          //add the new line
+          lines.insert(lines.begin()+cur_file_posy+1, line_end);
+
+          //reprint all the lines after
+          for(int i = cur_file_posy+1; i < lines.size(); i++) {
+            if(i >= winy) {
+              break;
+            }
+            move(cury+i-cur_file_posy, 0);
+            clrtoeol();
+            addstr(lines[i].c_str());
+          }
+
+          //move the cursor down the cursor
+          cur_file_posy++;
+          cury++;
+
+          //scroll if the cursor passed the screen
+          move(cury, 0);
+          if(cury >= winy) {
+            scroll(stdscr);
+            cury = winy-1;
+            addstr(lines[cur_file_posy].c_str());
+            move(cury, 0);
+          }
+
           continue;
         }
 

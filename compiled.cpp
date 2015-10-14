@@ -379,7 +379,7 @@ int main(int argc, char *argv[]) {
               cur_file_posy++;
               cury++;
             }
-            else if(cur_file_posy < lines.size()) {
+            else if(cur_file_posy < lines.size()-1) {
               scroll(stdscr);
               cur_file_posy++;
               move(cury, 0);
@@ -432,6 +432,39 @@ int main(int argc, char *argv[]) {
 
         //handle newlines by scrolling up and splitting lines
         if(c == '\r') {
+          string line_start = lines[cur_file_posy].substr(0, curx);
+          string line_end = lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);
+
+          //rewrite the current line
+          lines[cur_file_posy] = line_start;
+          clrtoeol();
+
+          //add the new line
+          lines.insert(lines.begin()+cur_file_posy+1, line_end);
+
+          //reprint all the lines after
+          for(int i = cur_file_posy+1; i < lines.size(); i++) {
+            if(i >= winy) {
+              break;
+            }
+            move(cury+i-cur_file_posy, 0);
+            clrtoeol();
+            addstr(lines[i].c_str());
+          }
+
+          //move the cursor down the cursor
+          cur_file_posy++;
+          cury++;
+
+          //scroll if the cursor passed the screen
+          move(cury, 0);
+          if(cury >= winy) {
+            scroll(stdscr);
+            cury = winy-1;
+            addstr(lines[cur_file_posy].c_str());
+            move(cury, 0);
+          }
+
           continue;
         }
 
@@ -577,7 +610,7 @@ string program_str = ""
 "              cur_file_posy++;\n"
 "              cury++;\n"
 "            }\n"
-"            else if(cur_file_posy < lines.size()) {\n"
+"            else if(cur_file_posy < lines.size()-1) {\n"
 "              scroll(stdscr);\n"
 "              cur_file_posy++;\n"
 "              move(cury, 0);\n"
@@ -630,6 +663,39 @@ string program_str = ""
 "\n"
 "        //handle newlines by scrolling up and splitting lines\n"
 "        if(c == '\\r') {\n"
+"          string line_start = lines[cur_file_posy].substr(0, curx);\n"
+"          string line_end = lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);\n"
+"\n"
+"          //rewrite the current line\n"
+"          lines[cur_file_posy] = line_start;\n"
+"          clrtoeol();\n"
+"\n"
+"          //add the new line\n"
+"          lines.insert(lines.begin()+cur_file_posy+1, line_end);\n"
+"\n"
+"          //reprint all the lines after\n"
+"          for(int i = cur_file_posy+1; i < lines.size(); i++) {\n"
+"            if(i >= winy) {\n"
+"              break;\n"
+"            }\n"
+"            move(cury+i-cur_file_posy, 0);\n"
+"            clrtoeol();\n"
+"            addstr(lines[i].c_str());\n"
+"          }\n"
+"\n"
+"          //move the cursor down the cursor\n"
+"          cur_file_posy++;\n"
+"          cury++;\n"
+"\n"
+"          //scroll if the cursor passed the screen\n"
+"          move(cury, 0);\n"
+"          if(cury >= winy) {\n"
+"            scroll(stdscr);\n"
+"            cury = winy-1;\n"
+"            addstr(lines[cur_file_posy].c_str());\n"
+"            move(cury, 0);\n"
+"          }\n"
+"\n"
 "          continue;\n"
 "        }\n"
 "\n"
