@@ -132,7 +132,7 @@ void rewrite_program(string str) {
   string echo_command = "echo \"" + str_full + "\"";
 
   //create the entire command for compiling
-  string compile_command = echo_command + " | g++-4.9 -o it -xc++ -std=c++11 -";
+  string compile_command = echo_command + " | g++-4.9 -o it -xc++ -lncurses -std=c++11 -";
 
   //compile the program and replace
   system(compile_command.c_str());
@@ -273,7 +273,7 @@ string replicator_str = ""
 "  string echo_command = \"echo \\\"\" + str_full + \"\\\"\";\n"
 "\n"
 "  //create the entire command for compiling\n"
-"  string compile_command = echo_command + \" | g++-4.9 -o it -xc++ -std=c++11 -\";\n"
+"  string compile_command = echo_command + \" | g++-4.9 -o it -xc++ -lncurses -std=c++11 -\";\n"
 "\n"
 "  //compile the program and replace\n"
 "  system(compile_command.c_str());\n"
@@ -364,6 +364,15 @@ int main(int argc, char *argv[]) {
         //enter insert mode
         if(c == 'i') {
           mode = mode_insert;
+        }
+
+        //rewrite the program
+        else if(c == 'w') {
+          program_str = "";
+          for(auto line : lines) {
+            program_str += line + '\n';
+          }
+          rewrite_program(program_str);
         }
 
         //move the cursor around with hjkl
@@ -548,7 +557,7 @@ int main(int argc, char *argv[]) {
   //program_str.replace(line_start, line_end-line_start, new_val_str);
 
   //rewrite_program(program_str);
-  //return 0;
+  return 0;
 }
 
 static void finish(int sig) {
@@ -640,6 +649,15 @@ string program_str = ""
 "        //enter insert mode\n"
 "        if(c == 'i') {\n"
 "          mode = mode_insert;\n"
+"        }\n"
+"\n"
+"        //rewrite the program\n"
+"        else if(c == 'w') {\n"
+"          program_str = \"\";\n"
+"          for(auto line : lines) {\n"
+"            program_str += line + '\\n';\n"
+"          }\n"
+"          rewrite_program(program_str);\n"
 "        }\n"
 "\n"
 "        //move the cursor around with hjkl\n"
@@ -824,7 +842,7 @@ string program_str = ""
 "  //program_str.replace(line_start, line_end-line_start, new_val_str);\n"
 "\n"
 "  //rewrite_program(program_str);\n"
-"  //return 0;\n"
+"  return 0;\n"
 "}\n"
 "\n"
 "static void finish(int sig) {\n"

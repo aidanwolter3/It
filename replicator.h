@@ -132,7 +132,7 @@ void rewrite_program(string str) {
   string echo_command = "echo \"" + str_full + "\"";
 
   //create the entire command for compiling
-  string compile_command = echo_command + " | g++-4.9 -o it -xc++ -std=c++11 -";
+  string compile_command = echo_command + " | g++-4.9 -o it -xc++ -lncurses -std=c++11 -";
 
   //compile the program and replace
   system(compile_command.c_str());

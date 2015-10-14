@@ -84,6 +84,15 @@ int main(int argc, char *argv[]) {
           mode = mode_insert;
         }
 
+        //rewrite the program
+        else if(c == 'w') {
+          program_str = "";
+          for(auto line : lines) {
+            program_str += line + '\n';
+          }
+          rewrite_program(program_str);
+        }
+
         //move the cursor around with hjkl
         else if(c == 'h' || c == 'j' || c == 'k' || c == 'l') {
           if(c == 'h') {
@@ -266,7 +275,7 @@ int main(int argc, char *argv[]) {
   //program_str.replace(line_start, line_end-line_start, new_val_str);
 
   //rewrite_program(program_str);
-  //return 0;
+  return 0;
 }
 
 static void finish(int sig) {
