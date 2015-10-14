@@ -369,15 +369,15 @@ int main(int argc, char *argv[]) {
         //move the cursor around with hjkl
         else if(c == 'h' || c == 'j' || c == 'k' || c == 'l') {
           if(c == 'h') {
-            if(curx > 0) {
-              cur_file_posx--;
-              curx--;
+            if(cur_file_posx > 0) {
+              cur_file_posx = curx-1;
+              curx = cur_file_posx;
             }
           }
           else if(c == 'j') {
             if(cury < winy-1) {
               cur_file_posy++;
-              cury++;
+              cury = cur_file_posy;
             }
             else if(cur_file_posy < lines.size()) {
               scroll(stdscr);
@@ -385,23 +385,30 @@ int main(int argc, char *argv[]) {
               move(cury, 0);
               addstr(lines[cur_file_posy].c_str());
             }
+            curx = cur_file_posx;
           }
           else if(c == 'k') {
             if(cury > 0) {
               cur_file_posy--;
-              cury--;
+              cury = cur_file_posy;
             }
             else if(cur_file_posy > 0) {
               scrl(-1);
               cur_file_posy--;
               addstr(lines[cur_file_posy].c_str());
             }
+            curx = cur_file_posx;
           }
           else if(c == 'l') {
             if(curx < winx) {
-              cur_file_posx++;
-              curx++;
+              cur_file_posx = curx+1;
+              curx = cur_file_posx;
             }
+          }
+
+          //restrict the cursor's x coordinate to the length of the string
+          if(curx >= lines[cury].size()) {
+            curx = lines[cury].size();
           }
           move(cury, curx);
         }
@@ -542,15 +549,15 @@ string program_str = ""
 "        //move the cursor around with hjkl\n"
 "        else if(c == 'h' || c == 'j' || c == 'k' || c == 'l') {\n"
 "          if(c == 'h') {\n"
-"            if(curx > 0) {\n"
-"              cur_file_posx--;\n"
-"              curx--;\n"
+"            if(cur_file_posx > 0) {\n"
+"              cur_file_posx = curx-1;\n"
+"              curx = cur_file_posx;\n"
 "            }\n"
 "          }\n"
 "          else if(c == 'j') {\n"
 "            if(cury < winy-1) {\n"
 "              cur_file_posy++;\n"
-"              cury++;\n"
+"              cury = cur_file_posy;\n"
 "            }\n"
 "            else if(cur_file_posy < lines.size()) {\n"
 "              scroll(stdscr);\n"
@@ -558,23 +565,30 @@ string program_str = ""
 "              move(cury, 0);\n"
 "              addstr(lines[cur_file_posy].c_str());\n"
 "            }\n"
+"            curx = cur_file_posx;\n"
 "          }\n"
 "          else if(c == 'k') {\n"
 "            if(cury > 0) {\n"
 "              cur_file_posy--;\n"
-"              cury--;\n"
+"              cury = cur_file_posy;\n"
 "            }\n"
 "            else if(cur_file_posy > 0) {\n"
 "              scrl(-1);\n"
 "              cur_file_posy--;\n"
 "              addstr(lines[cur_file_posy].c_str());\n"
 "            }\n"
+"            curx = cur_file_posx;\n"
 "          }\n"
 "          else if(c == 'l') {\n"
 "            if(curx < winx) {\n"
-"              cur_file_posx++;\n"
-"              curx++;\n"
+"              cur_file_posx = curx+1;\n"
+"              curx = cur_file_posx;\n"
 "            }\n"
+"          }\n"
+"\n"
+"          //restrict the cursor's x coordinate to the length of the string\n"
+"          if(curx >= lines[cury].size()) {\n"
+"            curx = lines[cury].size();\n"
 "          }\n"
 "          move(cury, curx);\n"
 "        }\n"
