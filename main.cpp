@@ -5,7 +5,11 @@
 
 using namespace std;
 
+#define min(a,b) ((a) < (b) ? (a) : (b))
+#define max(a,b) ((a) > (b) ? (a) : (b))
+
 void rewrite_program(string str);
+void rewrite_buffer();
 extern string program_str;
 
 static void finish(int sig);
@@ -15,7 +19,23 @@ typedef enum it_mode_t{
   mode_insert
 } it_mode_t;
 
-//int val = 0;
+typedef enum it_buffer_t{
+  it_buffer_program,
+  it_buffer_compile_output
+} it_buffer_t;
+
+vector<string> buffer_lines;
+vector<string> compile_output;
+vector<string> program_lines;
+
+//keep track of the window size and the cursor position
+int winx, winy;
+int curx, cury;
+
+//keep track of the current position within the file
+int cur_file_posx = 0;
+int cur_file_posy = 0;
+
 int main(int argc, char *argv[]) {
   int num = 0;
 
@@ -43,37 +63,33 @@ int main(int argc, char *argv[]) {
   //keep track of the current mode
   it_mode_t mode = mode_base;
 
-  //keep track of the current position within the file
-  int cur_file_posx = 0;
-  int cur_file_posy = 0;
-
-  //keep track of the window size and the cursor position
-  int winx, winy;
-  int curx, cury;
   getmaxyx(stdscr, winy, winx);
+  winy -= 2;
 
-  //get the lines from the program string
-  vector<string> lines;
+  //get the buffer_lines from the program string
   istringstream program_str_stream(program_str);
   string line;
   while(getline(program_str_stream, line)) {
-    lines.push_back(line);
+    program_lines.push_back(line);
   }
+  buffer_lines.insert(buffer_lines.begin(), program_lines.begin(), program_lines.end());
 
   //print the screen with the program string
   for(int i = 0; i < winy; i++) {
     move(i, 0);
-    if(i > lines.size()-1) {
+    if(i > buffer_lines.size()-1) {
       break;
     }
-    addstr(lines[i].c_str());
+    addstr(buffer_lines[i].c_str());
   }
   move(0, 0);
 
   //infinitely loop over getting input
+  int buffer_contents = it_buffer_program;
   for(;;) {
     getyx(stdscr, cury, curx);
     getmaxyx(stdscr, winy, winx);
+    winy -= 2;
 
     switch(mode) {
       case mode_base: {
@@ -81,20 +97,67 @@ int main(int argc, char *argv[]) {
 
         //enter insert mode
         if(c == 'i') {
-          mode = mode_insert;
+          if(buffer_contents == it_buffer_program) {
+            mode = mode_insert;
+          }
+        }
+
+        //quit
+        else if(c == 'q') {
+          finish(0);
         }
 
         //rewrite the program
         else if(c == 'w') {
+
+          //save the buffer into the lines of the program
+          program_lines.clear();
+          program_lines.insert(program_lines.begin(), buffer_lines.begin(), buffer_lines.end());
+
+          //recreate the program string
           program_str = "";
-          for(auto line : lines) {
+          for(auto line : program_lines) {
             program_str += line + '\n';
           }
-          rewrite_program(program_str);
+
+          rewrite_program(program_str, &compile_output);
+
+          //determine and show the result
+          if(compile_output.size() > 0) {
+            move(winy+1, 0);
+            addstr("REWRITE ERROR: type 'o' in command mode to see the output");
+            move(cury, curx);
+          }
+          else {
+            move(winy+1, 0);
+            addstr("REWRITE SUCCESS");
+            move(cury, curx);
+          }
+        }
+
+        //show compile output
+        else if(c == 'o') {
+          buffer_lines.clear();
+
+          if(buffer_contents == it_buffer_program) {
+            buffer_lines.insert(buffer_lines.begin(), compile_output.begin(), compile_output.end());
+            buffer_contents = it_buffer_compile_output;
+          }
+          else if(buffer_contents == it_buffer_compile_output) {
+            buffer_lines.insert(buffer_lines.begin(), program_lines.begin(), program_lines.end());
+            buffer_contents = it_buffer_program;
+          }
+
+          rewrite_buffer();
         }
 
         //move the cursor around with hjkl
         else if(c == 'h' || c == 'j' || c == 'k' || c == 'l') {
+
+          //remove any messages
+          move(winy+1, 0);
+          clrtoeol();
+
           if(c == 'h') {
             if(cur_file_posx > 0) {
               cur_file_posx = curx-1;
@@ -102,15 +165,15 @@ int main(int argc, char *argv[]) {
             }
           }
           else if(c == 'j') {
-            if(cury < winy-1) {
+            if(cury < min(winy-2, buffer_lines.size())) {
               cur_file_posy++;
               cury++;
             }
-            else if(cur_file_posy < lines.size()-1) {
+            else if(cur_file_posy < buffer_lines.size()-1) {
               scroll(stdscr);
               cur_file_posy++;
               move(cury, 0);
-              addstr(lines[cur_file_posy].c_str());
+              addstr(buffer_lines[cur_file_posy].c_str());
             }
 
             //ensure we are placed correctly on the x axis
@@ -125,7 +188,7 @@ int main(int argc, char *argv[]) {
               scrl(-1);
               cur_file_posy--;
               move(cury, 0);
-              addstr(lines[cur_file_posy].c_str());
+              addstr(buffer_lines[cur_file_posy].c_str());
             }
 
             //ensure we are placed correctly on the x axis
@@ -139,8 +202,8 @@ int main(int argc, char *argv[]) {
           }
 
           //restrict the cursor's x coordinate to the length of the string
-          if(curx >= lines[cur_file_posy].size()) {
-            curx = lines[cur_file_posy].size();
+          if(curx >= buffer_lines[cur_file_posy].size()) {
+            curx = buffer_lines[cur_file_posy].size();
           }
           move(cury, curx);
         }
@@ -156,26 +219,26 @@ int main(int argc, char *argv[]) {
           mode = mode_base;
         }
 
-        //handle newlines by scrolling up and splitting lines
+        //handle newlines by scrolling up and splitting buffer_lines
         else if(c == '\r') {
-          string line_start = lines[cur_file_posy].substr(0, curx);
-          string line_end = lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);
+          string line_start = buffer_lines[cur_file_posy].substr(0, curx);
+          string line_end = buffer_lines[cur_file_posy].substr(curx, buffer_lines[cur_file_posy].size()-curx);
 
           //rewrite the current line
-          lines[cur_file_posy] = line_start;
+          buffer_lines[cur_file_posy] = line_start;
           clrtoeol();
 
           //add the new line
-          lines.insert(lines.begin()+cur_file_posy+1, line_end);
+          buffer_lines.insert(buffer_lines.begin()+cur_file_posy+1, line_end);
 
-          //reprint all the lines after
-          for(int i = cur_file_posy+1; i < lines.size(); i++) {
+          //reprint all the buffer_lines after
+          for(int i = cur_file_posy+1; i < buffer_lines.size(); i++) {
             if(i >= winy) {
               break;
             }
             move(cury+i-cur_file_posy, 0);
             clrtoeol();
-            addstr(lines[i].c_str());
+            addstr(buffer_lines[i].c_str());
           }
 
           //move the cursor down the cursor
@@ -187,7 +250,7 @@ int main(int argc, char *argv[]) {
           if(cury >= winy) {
             scroll(stdscr);
             cury = winy-1;
-            addstr(lines[cur_file_posy].c_str());
+            addstr(buffer_lines[cur_file_posy].c_str());
             move(cury, 0);
           }
         }
@@ -195,29 +258,29 @@ int main(int argc, char *argv[]) {
         //delete or backspace
         else if(c == 127 || c == 8) {
           if(curx > 0) {
-            string line = lines[cur_file_posy];
-            lines[cur_file_posy] = line.substr(0, curx-1) + line.substr(curx, line.size()-curx);
+            string line = buffer_lines[cur_file_posy];
+            buffer_lines[cur_file_posy] = line.substr(0, curx-1) + line.substr(curx, line.size()-curx);
             cur_file_posx--;
             curx--;
             move(cury, curx);
             delch();
           }
           else if(cur_file_posy > 0) {
-            int new_posx = lines[cur_file_posy-1].size();
-            string bigger_line = lines[cur_file_posy-1] + lines[cur_file_posy];
-            lines[cur_file_posy-1] = bigger_line;
-            lines.erase(lines.begin()+cur_file_posy);
+            int new_posx = buffer_lines[cur_file_posy-1].size();
+            string bigger_line = buffer_lines[cur_file_posy-1] + buffer_lines[cur_file_posy];
+            buffer_lines[cur_file_posy-1] = bigger_line;
+            buffer_lines.erase(buffer_lines.begin()+cur_file_posy);
 
             if(cury > 0) {
 
-              //reprint all lines after
-              for(int i = cur_file_posy-1; i < lines.size(); i++) {
+              //reprint all buffer_lines after
+              for(int i = cur_file_posy-1; i < buffer_lines.size(); i++) {
                 if(i >= winy) {
                   break;
                 }
                 move(cury+i-cur_file_posy, 0);
                 clrtoeol();
-                addstr(lines[i].c_str());
+                addstr(buffer_lines[i].c_str());
               }
 
               //move the cursor
@@ -229,7 +292,7 @@ int main(int argc, char *argv[]) {
             else {
               move(cury, 0);
               clrtoeol();
-              addstr(lines[cur_file_posy].c_str());
+              addstr(buffer_lines[cur_file_posy].c_str());
               move(cury, new_posx);
               cur_file_posx = new_posx;
             }
@@ -240,8 +303,8 @@ int main(int argc, char *argv[]) {
         else {
 
           //add the character to the line
-          string line_end = (char)c + lines[cur_file_posy].substr(curx, lines[cur_file_posy].size()-curx);
-          lines[cur_file_posy] = lines[cur_file_posy].substr(0, curx) + line_end;
+          string line_end = (char)c + buffer_lines[cur_file_posy].substr(curx, buffer_lines[cur_file_posy].size()-curx);
+          buffer_lines[cur_file_posy] = buffer_lines[cur_file_posy].substr(0, curx) + line_end;
           move(cury, curx);
           addstr(line_end.c_str());
 
@@ -257,25 +320,18 @@ int main(int argc, char *argv[]) {
 
   finish(0);
 
-  //output the current value and prompt for the new value
-  //cout << val << endl;
-  //cout << "enter a new value: ";
-  //cin >> val;
-  //string new_val_str = "int val = " + to_string(val) + ";\n";
-
-  ////replace the 10th line
-  //size_t line_start = 0;
-  //size_t line_end = 0;
-  //int line_to_edit = 9;
-  //for(int i = 0; i < line_to_edit; i++) {
-  //  line_start = program_str.find("\n", line_start);
-  //  line_start++;
-  //}
-  //line_end = program_str.find("\n", line_start);
-  //program_str.replace(line_start, line_end-line_start, new_val_str);
-
-  //rewrite_program(program_str);
   return 0;
+}
+
+void rewrite_buffer() {
+  clear();
+  for(int i = 0; i < buffer_lines.size() && i < winy; i++) {
+    move(i, 0);
+    addstr(buffer_lines[i].c_str());
+  }
+  move(0, 0);
+  cur_file_posy = 0;
+  cur_file_posx = 0;
 }
 
 static void finish(int sig) {

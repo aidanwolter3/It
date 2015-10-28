@@ -2,12 +2,14 @@
 //Allows program to rewrite themselves
 
 #include <iostream>
+#include <vector>
+
 using namespace std;
 
 //create the program from the string then tack on the program string at the end
 extern string replicator_str;
-void rewrite_program(string str);
-void rewrite_program(string str) {
+void rewrite_program(string str, vector<string> *lines);
+void rewrite_program(string str, vector<string> *lines) {
 
   //PROGRAM compile
 
@@ -132,9 +134,18 @@ void rewrite_program(string str) {
   string echo_command = "echo \"" + str_full + "\"";
 
   //create the entire command for compiling
-  string compile_command = echo_command + " | g++-4.9 -o it -xc++ -lncurses -std=c++11 -";
+  string compile_command = echo_command + " | g++-4.9 -o it -xc++ -lncurses -std=c++11 - 2>&1";
 
   //compile the program and replace
-  system(compile_command.c_str());
+  FILE *output = popen(compile_command.c_str(), "r");
+  lines->clear();
+
+  char cline[1024];
+  while(fgets(cline, 1024, output)) {
+    string line = cline;
+    lines->push_back(line);
+  }
+
+  return;
 }
 
