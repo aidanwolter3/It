@@ -363,9 +363,10 @@ int main(int argc, char *argv[]) {
   initscr();
 
   if(has_colors()) {
-    //start_color();
-    //init_pair(1, COLOR_GREEN, COLOR_BLACK);
-    //attron(COLOR_PAIR(1));
+    start_color();
+    init_pair(1, COLOR_GREEN, COLOR_BLACK);
+    init_pair(2, COLOR_BLACK, COLOR_WHITE);
+    attron(COLOR_PAIR(1));
   }
 
   //enable keyboard mapping
@@ -411,6 +412,18 @@ int main(int argc, char *argv[]) {
   //print the screen with the program string
   rewrite_buffer(cur_file_posy, curx, cury);
 
+  //get the initial coordinate positions
+  for(int i = 0; i < argc; i++) {
+    string arg = argv[i];
+    if(arg == "-r") {
+      move(winy+1, 0);
+      attron(COLOR_PAIR(2));
+      addstr("REWRITE SUCCESS");
+      attron(COLOR_PAIR(1));
+      move(cury, curx);
+    }
+  }
+
   //infinitely loop over getting input
   int buffer_contents = it_buffer_program;
   for(;;) {
@@ -452,14 +465,16 @@ int main(int argc, char *argv[]) {
           //determine and show the result
           if(compile_output.size() > 0) {
             move(winy+1, 0);
+            attron(COLOR_PAIR(2));
             addstr("REWRITE ERROR: type 'o' in command mode to see the output");
+            attron(COLOR_PAIR(1));
             move(cury, curx);
           }
           else {
             move(winy+1, 0);
             addstr("REWRITE SUCCESS");
             move(cury, curx);
-            string restart_str = "./it +" + to_string(cur_file_posy) + "," + to_string(cury) + "," + to_string(curx);
+            string restart_str = "./it +" + to_string(cur_file_posy) + "," + to_string(cury) + "," + to_string(curx) + " -r";
             system(restart_str.c_str());
             finish(0);
           }
@@ -488,6 +503,15 @@ int main(int argc, char *argv[]) {
             cury = pcury;
             curx = pcurx;
             rewrite_buffer(p_start_posy, curx, cury);
+          }
+        }
+
+        //save to file
+        else if(c == 's') {
+          FILE *fp = fopen("main.cpp", "w");
+          for(auto line : buffer_lines) {
+            string newline = line + "\n";
+            fwrite(newline.c_str(), sizeof(char), newline.size(), fp);
           }
         }
 
@@ -747,9 +771,10 @@ string program_str = ""
 "  initscr();\n"
 "\n"
 "  if(has_colors()) {\n"
-"    //start_color();\n"
-"    //init_pair(1, COLOR_GREEN, COLOR_BLACK);\n"
-"    //attron(COLOR_PAIR(1));\n"
+"    start_color();\n"
+"    init_pair(1, COLOR_GREEN, COLOR_BLACK);\n"
+"    init_pair(2, COLOR_BLACK, COLOR_WHITE);\n"
+"    attron(COLOR_PAIR(1));\n"
 "  }\n"
 "\n"
 "  //enable keyboard mapping\n"
@@ -795,6 +820,18 @@ string program_str = ""
 "  //print the screen with the program string\n"
 "  rewrite_buffer(cur_file_posy, curx, cury);\n"
 "\n"
+"  //get the initial coordinate positions\n"
+"  for(int i = 0; i < argc; i++) {\n"
+"    string arg = argv[i];\n"
+"    if(arg == \"-r\") {\n"
+"      move(winy+1, 0);\n"
+"      attron(COLOR_PAIR(2));\n"
+"      addstr(\"REWRITE SUCCESS\");\n"
+"      attron(COLOR_PAIR(1));\n"
+"      move(cury, curx);\n"
+"    }\n"
+"  }\n"
+"\n"
 "  //infinitely loop over getting input\n"
 "  int buffer_contents = it_buffer_program;\n"
 "  for(;;) {\n"
@@ -836,14 +873,16 @@ string program_str = ""
 "          //determine and show the result\n"
 "          if(compile_output.size() > 0) {\n"
 "            move(winy+1, 0);\n"
+"            attron(COLOR_PAIR(2));\n"
 "            addstr(\"REWRITE ERROR: type 'o' in command mode to see the output\");\n"
+"            attron(COLOR_PAIR(1));\n"
 "            move(cury, curx);\n"
 "          }\n"
 "          else {\n"
 "            move(winy+1, 0);\n"
 "            addstr(\"REWRITE SUCCESS\");\n"
 "            move(cury, curx);\n"
-"            string restart_str = \"./it +\" + to_string(cur_file_posy) + \",\" + to_string(cury) + \",\" + to_string(curx);\n"
+"            string restart_str = \"./it +\" + to_string(cur_file_posy) + \",\" + to_string(cury) + \",\" + to_string(curx) + \" -r\";\n"
 "            system(restart_str.c_str());\n"
 "            finish(0);\n"
 "          }\n"
@@ -872,6 +911,15 @@ string program_str = ""
 "            cury = pcury;\n"
 "            curx = pcurx;\n"
 "            rewrite_buffer(p_start_posy, curx, cury);\n"
+"          }\n"
+"        }\n"
+"\n"
+"        //save to file\n"
+"        else if(c == 's') {\n"
+"          FILE *fp = fopen(\"main.cpp\", \"w\");\n"
+"          for(auto line : buffer_lines) {\n"
+"            string newline = line + \"\\n\";\n"
+"            fwrite(newline.c_str(), sizeof(char), newline.size(), fp);\n"
 "          }\n"
 "        }\n"
 "\n"
