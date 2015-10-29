@@ -348,7 +348,13 @@ int cur_file_posy = 0;
 int footer_height = 2;
 
 int main(int argc, char *argv[]) {
-  int num = 0;
+
+  //get the initial coordinate positions
+  for(int i = 0; i < argc; i++) {
+    if(argv[i][0] == '+') {
+      sscanf(argv[i], "+%d,%d,%d", &cur_file_posy, &cury, &curx);
+    }
+  }
 
   //create interrupt ^C to break
   signal(SIGINT, finish);
@@ -356,11 +362,11 @@ int main(int argc, char *argv[]) {
   //initialize library
   initscr();
 
-  //if(has_colors()) {
-  //  start_color();
-  //  init_pair(1, COLOR_GREEN, COLOR_BLACK);
-  //  attron(COLOR_PAIR(1));
-  //}
+  if(has_colors()) {
+    //start_color();
+    //init_pair(1, COLOR_GREEN, COLOR_BLACK);
+    //attron(COLOR_PAIR(1));
+  }
 
   //enable keyboard mapping
   keypad(stdscr, TRUE);
@@ -392,14 +398,12 @@ int main(int argc, char *argv[]) {
   buffer_lines.insert(buffer_lines.begin(), program_lines.begin(), program_lines.end());
 
   //print the screen with the program string
-  for(int i = 0; i < winy; i++) {
-    move(i, 0);
-    if(i > buffer_lines.size()-1) {
-      break;
-    }
-    addstr(buffer_lines[i].c_str());
-  }
-  move(0, 0);
+  rewrite_buffer(cur_file_posy, curx, cury);
+  //for(int i = cur_file_posy; i < buffer_lines.size() && i-cur_file_posy < winy; i++) {
+    //move(i-cur_file_posy, 0);
+    //addstr(buffer_lines[i].c_str());
+  //}
+  //move(cury, curx);
 
   //infinitely loop over getting input
   int buffer_contents = it_buffer_program;
@@ -449,6 +453,9 @@ int main(int argc, char *argv[]) {
             move(winy+1, 0);
             addstr("REWRITE SUCCESS");
             move(cury, curx);
+            string restart_str = "./it +" + to_string(cur_file_posy) + "," + to_string(cury) + "," + to_string(curx);
+            system(restart_str.c_str());
+            finish(0);
           }
         }
 
@@ -719,7 +726,13 @@ string program_str = ""
 "int footer_height = 2;\n"
 "\n"
 "int main(int argc, char *argv[]) {\n"
-"  int num = 0;\n"
+"\n"
+"  //get the initial coordinate positions\n"
+"  for(int i = 0; i < argc; i++) {\n"
+"    if(argv[i][0] == '+') {\n"
+"      sscanf(argv[i], \"+%d,%d,%d\", &cur_file_posy, &cury, &curx);\n"
+"    }\n"
+"  }\n"
 "\n"
 "  //create interrupt ^C to break\n"
 "  signal(SIGINT, finish);\n"
@@ -727,11 +740,11 @@ string program_str = ""
 "  //initialize library\n"
 "  initscr();\n"
 "\n"
-"  //if(has_colors()) {\n"
-"  //  start_color();\n"
-"  //  init_pair(1, COLOR_GREEN, COLOR_BLACK);\n"
-"  //  attron(COLOR_PAIR(1));\n"
-"  //}\n"
+"  if(has_colors()) {\n"
+"    //start_color();\n"
+"    //init_pair(1, COLOR_GREEN, COLOR_BLACK);\n"
+"    //attron(COLOR_PAIR(1));\n"
+"  }\n"
 "\n"
 "  //enable keyboard mapping\n"
 "  keypad(stdscr, TRUE);\n"
@@ -763,14 +776,12 @@ string program_str = ""
 "  buffer_lines.insert(buffer_lines.begin(), program_lines.begin(), program_lines.end());\n"
 "\n"
 "  //print the screen with the program string\n"
-"  for(int i = 0; i < winy; i++) {\n"
-"    move(i, 0);\n"
-"    if(i > buffer_lines.size()-1) {\n"
-"      break;\n"
-"    }\n"
-"    addstr(buffer_lines[i].c_str());\n"
-"  }\n"
-"  move(0, 0);\n"
+"  rewrite_buffer(cur_file_posy, curx, cury);\n"
+"  //for(int i = cur_file_posy; i < buffer_lines.size() && i-cur_file_posy < winy; i++) {\n"
+"    //move(i-cur_file_posy, 0);\n"
+"    //addstr(buffer_lines[i].c_str());\n"
+"  //}\n"
+"  //move(cury, curx);\n"
 "\n"
 "  //infinitely loop over getting input\n"
 "  int buffer_contents = it_buffer_program;\n"
@@ -820,6 +831,9 @@ string program_str = ""
 "            move(winy+1, 0);\n"
 "            addstr(\"REWRITE SUCCESS\");\n"
 "            move(cury, curx);\n"
+"            string restart_str = \"./it +\" + to_string(cur_file_posy) + \",\" + to_string(cury) + \",\" + to_string(curx);\n"
+"            system(restart_str.c_str());\n"
+"            finish(0);\n"
 "          }\n"
 "        }\n"
 "\n"
