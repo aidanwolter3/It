@@ -397,13 +397,19 @@ int main(int argc, char *argv[]) {
   }
   buffer_lines.insert(buffer_lines.begin(), program_lines.begin(), program_lines.end());
 
+  //ensure our specified initial starting coordinates do not go past the max
+  if(cur_file_posy > buffer_lines.size()-1) {
+    cur_file_posy = buffer_lines.size()-1;
+  }
+  if(cury > cur_file_posy) {
+    cury = cur_file_posy;
+  }
+  if(curx > buffer_lines[cur_file_posy].size()) {
+    curx = buffer_lines[cur_file_posy].size();
+  }
+
   //print the screen with the program string
   rewrite_buffer(cur_file_posy, curx, cury);
-  //for(int i = cur_file_posy; i < buffer_lines.size() && i-cur_file_posy < winy; i++) {
-    //move(i-cur_file_posy, 0);
-    //addstr(buffer_lines[i].c_str());
-  //}
-  //move(cury, curx);
 
   //infinitely loop over getting input
   int buffer_contents = it_buffer_program;
@@ -775,13 +781,19 @@ string program_str = ""
 "  }\n"
 "  buffer_lines.insert(buffer_lines.begin(), program_lines.begin(), program_lines.end());\n"
 "\n"
+"  //ensure our specified initial starting coordinates do not go past the max\n"
+"  if(cur_file_posy > buffer_lines.size()-1) {\n"
+"    cur_file_posy = buffer_lines.size()-1;\n"
+"  }\n"
+"  if(cury > cur_file_posy) {\n"
+"    cury = cur_file_posy;\n"
+"  }\n"
+"  if(curx > buffer_lines[cur_file_posy].size()) {\n"
+"    curx = buffer_lines[cur_file_posy].size();\n"
+"  }\n"
+"\n"
 "  //print the screen with the program string\n"
 "  rewrite_buffer(cur_file_posy, curx, cury);\n"
-"  //for(int i = cur_file_posy; i < buffer_lines.size() && i-cur_file_posy < winy; i++) {\n"
-"    //move(i-cur_file_posy, 0);\n"
-"    //addstr(buffer_lines[i].c_str());\n"
-"  //}\n"
-"  //move(cury, curx);\n"
 "\n"
 "  //infinitely loop over getting input\n"
 "  int buffer_contents = it_buffer_program;\n"
