@@ -312,8 +312,8 @@ using namespace std;
 #define min(a,b) ((a) < (b) ? (a) : (b))
 #define max(a,b) ((a) > (b) ? (a) : (b))
 
-void rewrite_program(string str);
-void rewrite_buffer();
+void rewrite_program(string str, vector<string> *lines);
+void rewrite_buffer(int start, int x, int y);
 extern string program_str;
 
 static void finish(int sig);
@@ -336,9 +336,16 @@ vector<string> program_lines;
 int winx, winy;
 int curx, cury;
 
+//save the state of the program buffer
+int pcurx, pcury;
+int p_start_posy;
+
 //keep track of the current position within the file
 int cur_file_posx = 0;
 int cur_file_posy = 0;
+
+//set the size of the footer
+int footer_height = 2;
 
 int main(int argc, char *argv[]) {
   int num = 0;
@@ -348,6 +355,12 @@ int main(int argc, char *argv[]) {
 
   //initialize library
   initscr();
+
+  //if(has_colors()) {
+  //  start_color();
+  //  init_pair(1, COLOR_GREEN, COLOR_BLACK);
+  //  attron(COLOR_PAIR(1));
+  //}
 
   //enable keyboard mapping
   keypad(stdscr, TRUE);
@@ -368,7 +381,7 @@ int main(int argc, char *argv[]) {
   it_mode_t mode = mode_base;
 
   getmaxyx(stdscr, winy, winx);
-  winy -= 2;
+  winy = winy - footer_height;
 
   //get the buffer_lines from the program string
   istringstream program_str_stream(program_str);
@@ -393,7 +406,7 @@ int main(int argc, char *argv[]) {
   for(;;) {
     getyx(stdscr, cury, curx);
     getmaxyx(stdscr, winy, winx);
-    winy -= 2;
+    winy = winy - footer_height;
 
     switch(mode) {
       case mode_base: {
@@ -441,25 +454,35 @@ int main(int argc, char *argv[]) {
 
         //show compile output
         else if(c == 'o') {
-          buffer_lines.clear();
 
           if(buffer_contents == it_buffer_program) {
+            program_lines.clear();
+            program_lines.insert(program_lines.begin(), buffer_lines.begin(), buffer_lines.end());
+            buffer_lines.clear();
             buffer_lines.insert(buffer_lines.begin(), compile_output.begin(), compile_output.end());
             buffer_contents = it_buffer_compile_output;
+
+            pcury = cury;
+            pcurx = curx;
+            p_start_posy = cur_file_posy;
+            rewrite_buffer(0, 0, 0);
           }
           else if(buffer_contents == it_buffer_compile_output) {
+            buffer_lines.clear();
             buffer_lines.insert(buffer_lines.begin(), program_lines.begin(), program_lines.end());
             buffer_contents = it_buffer_program;
-          }
 
-          rewrite_buffer();
+            cury = pcury;
+            curx = pcurx;
+            rewrite_buffer(p_start_posy, curx, cury);
+          }
         }
 
         //move the cursor around with hjkl
         else if(c == 'h' || c == 'j' || c == 'k' || c == 'l') {
 
           //remove any messages
-          move(winy+1, 0);
+          move(winy+footer_height-1, 0);
           clrtoeol();
 
           if(c == 'h') {
@@ -469,7 +492,7 @@ int main(int argc, char *argv[]) {
             }
           }
           else if(c == 'j') {
-            if(cury < min(winy-2, buffer_lines.size())) {
+            if(cury < min(winy-1, buffer_lines.size()-1)) {
               cur_file_posy++;
               cury++;
             }
@@ -493,6 +516,12 @@ int main(int argc, char *argv[]) {
               cur_file_posy--;
               move(cury, 0);
               addstr(buffer_lines[cur_file_posy].c_str());
+            }
+
+            //clear the footer lines
+            for(int i = winy; i < winy+footer_height; i++) {
+              move(i, 0);
+              clrtoeol();
             }
 
             //ensure we are placed correctly on the x axis
@@ -537,7 +566,7 @@ int main(int argc, char *argv[]) {
 
           //reprint all the buffer_lines after
           for(int i = cur_file_posy+1; i < buffer_lines.size(); i++) {
-            if(i >= winy) {
+            if(cury+i-cur_file_posy >= winy) {
               break;
             }
             move(cury+i-cur_file_posy, 0);
@@ -554,6 +583,7 @@ int main(int argc, char *argv[]) {
           if(cury >= winy) {
             scroll(stdscr);
             cury = winy-1;
+            move(cury, 0);
             addstr(buffer_lines[cur_file_posy].c_str());
             move(cury, 0);
           }
@@ -579,7 +609,7 @@ int main(int argc, char *argv[]) {
 
               //reprint all buffer_lines after
               for(int i = cur_file_posy-1; i < buffer_lines.size(); i++) {
-                if(i >= winy) {
+                if(cury+i-cur_file_posy+1 >= winy) {
                   break;
                 }
                 move(cury+i-cur_file_posy, 0);
@@ -627,15 +657,15 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-void rewrite_buffer() {
+void rewrite_buffer(int start, int x, int y) {
   clear();
-  for(int i = 0; i < buffer_lines.size() && i < winy; i++) {
-    move(i, 0);
+  for(int i = start-y; i < buffer_lines.size() && i-start+y < winy; i++) {
+    move(i-start+y, 0);
     addstr(buffer_lines[i].c_str());
   }
-  move(0, 0);
-  cur_file_posy = 0;
-  cur_file_posx = 0;
+  move(y, x);
+  cur_file_posy = start;
+  cur_file_posx = x;
 }
 
 static void finish(int sig) {
@@ -653,8 +683,8 @@ string program_str = ""
 "#define min(a,b) ((a) < (b) ? (a) : (b))\n"
 "#define max(a,b) ((a) > (b) ? (a) : (b))\n"
 "\n"
-"void rewrite_program(string str);\n"
-"void rewrite_buffer();\n"
+"void rewrite_program(string str, vector<string> *lines);\n"
+"void rewrite_buffer(int start, int x, int y);\n"
 "extern string program_str;\n"
 "\n"
 "static void finish(int sig);\n"
@@ -677,9 +707,16 @@ string program_str = ""
 "int winx, winy;\n"
 "int curx, cury;\n"
 "\n"
+"//save the state of the program buffer\n"
+"int pcurx, pcury;\n"
+"int p_start_posy;\n"
+"\n"
 "//keep track of the current position within the file\n"
 "int cur_file_posx = 0;\n"
 "int cur_file_posy = 0;\n"
+"\n"
+"//set the size of the footer\n"
+"int footer_height = 2;\n"
 "\n"
 "int main(int argc, char *argv[]) {\n"
 "  int num = 0;\n"
@@ -689,6 +726,12 @@ string program_str = ""
 "\n"
 "  //initialize library\n"
 "  initscr();\n"
+"\n"
+"  //if(has_colors()) {\n"
+"  //  start_color();\n"
+"  //  init_pair(1, COLOR_GREEN, COLOR_BLACK);\n"
+"  //  attron(COLOR_PAIR(1));\n"
+"  //}\n"
 "\n"
 "  //enable keyboard mapping\n"
 "  keypad(stdscr, TRUE);\n"
@@ -709,7 +752,7 @@ string program_str = ""
 "  it_mode_t mode = mode_base;\n"
 "\n"
 "  getmaxyx(stdscr, winy, winx);\n"
-"  winy -= 2;\n"
+"  winy = winy - footer_height;\n"
 "\n"
 "  //get the buffer_lines from the program string\n"
 "  istringstream program_str_stream(program_str);\n"
@@ -734,7 +777,7 @@ string program_str = ""
 "  for(;;) {\n"
 "    getyx(stdscr, cury, curx);\n"
 "    getmaxyx(stdscr, winy, winx);\n"
-"    winy -= 2;\n"
+"    winy = winy - footer_height;\n"
 "\n"
 "    switch(mode) {\n"
 "      case mode_base: {\n"
@@ -782,25 +825,35 @@ string program_str = ""
 "\n"
 "        //show compile output\n"
 "        else if(c == 'o') {\n"
-"          buffer_lines.clear();\n"
 "\n"
 "          if(buffer_contents == it_buffer_program) {\n"
+"            program_lines.clear();\n"
+"            program_lines.insert(program_lines.begin(), buffer_lines.begin(), buffer_lines.end());\n"
+"            buffer_lines.clear();\n"
 "            buffer_lines.insert(buffer_lines.begin(), compile_output.begin(), compile_output.end());\n"
 "            buffer_contents = it_buffer_compile_output;\n"
+"\n"
+"            pcury = cury;\n"
+"            pcurx = curx;\n"
+"            p_start_posy = cur_file_posy;\n"
+"            rewrite_buffer(0, 0, 0);\n"
 "          }\n"
 "          else if(buffer_contents == it_buffer_compile_output) {\n"
+"            buffer_lines.clear();\n"
 "            buffer_lines.insert(buffer_lines.begin(), program_lines.begin(), program_lines.end());\n"
 "            buffer_contents = it_buffer_program;\n"
-"          }\n"
 "\n"
-"          rewrite_buffer();\n"
+"            cury = pcury;\n"
+"            curx = pcurx;\n"
+"            rewrite_buffer(p_start_posy, curx, cury);\n"
+"          }\n"
 "        }\n"
 "\n"
 "        //move the cursor around with hjkl\n"
 "        else if(c == 'h' || c == 'j' || c == 'k' || c == 'l') {\n"
 "\n"
 "          //remove any messages\n"
-"          move(winy+1, 0);\n"
+"          move(winy+footer_height-1, 0);\n"
 "          clrtoeol();\n"
 "\n"
 "          if(c == 'h') {\n"
@@ -810,7 +863,7 @@ string program_str = ""
 "            }\n"
 "          }\n"
 "          else if(c == 'j') {\n"
-"            if(cury < min(winy-2, buffer_lines.size())) {\n"
+"            if(cury < min(winy-1, buffer_lines.size()-1)) {\n"
 "              cur_file_posy++;\n"
 "              cury++;\n"
 "            }\n"
@@ -834,6 +887,12 @@ string program_str = ""
 "              cur_file_posy--;\n"
 "              move(cury, 0);\n"
 "              addstr(buffer_lines[cur_file_posy].c_str());\n"
+"            }\n"
+"\n"
+"            //clear the footer lines\n"
+"            for(int i = winy; i < winy+footer_height; i++) {\n"
+"              move(i, 0);\n"
+"              clrtoeol();\n"
 "            }\n"
 "\n"
 "            //ensure we are placed correctly on the x axis\n"
@@ -878,7 +937,7 @@ string program_str = ""
 "\n"
 "          //reprint all the buffer_lines after\n"
 "          for(int i = cur_file_posy+1; i < buffer_lines.size(); i++) {\n"
-"            if(i >= winy) {\n"
+"            if(cury+i-cur_file_posy >= winy) {\n"
 "              break;\n"
 "            }\n"
 "            move(cury+i-cur_file_posy, 0);\n"
@@ -895,6 +954,7 @@ string program_str = ""
 "          if(cury >= winy) {\n"
 "            scroll(stdscr);\n"
 "            cury = winy-1;\n"
+"            move(cury, 0);\n"
 "            addstr(buffer_lines[cur_file_posy].c_str());\n"
 "            move(cury, 0);\n"
 "          }\n"
@@ -920,7 +980,7 @@ string program_str = ""
 "\n"
 "              //reprint all buffer_lines after\n"
 "              for(int i = cur_file_posy-1; i < buffer_lines.size(); i++) {\n"
-"                if(i >= winy) {\n"
+"                if(cury+i-cur_file_posy+1 >= winy) {\n"
 "                  break;\n"
 "                }\n"
 "                move(cury+i-cur_file_posy, 0);\n"
@@ -968,15 +1028,15 @@ string program_str = ""
 "  return 0;\n"
 "}\n"
 "\n"
-"void rewrite_buffer() {\n"
+"void rewrite_buffer(int start, int x, int y) {\n"
 "  clear();\n"
-"  for(int i = 0; i < buffer_lines.size() && i < winy; i++) {\n"
-"    move(i, 0);\n"
+"  for(int i = start-y; i < buffer_lines.size() && i-start+y < winy; i++) {\n"
+"    move(i-start+y, 0);\n"
 "    addstr(buffer_lines[i].c_str());\n"
 "  }\n"
-"  move(0, 0);\n"
-"  cur_file_posy = 0;\n"
-"  cur_file_posx = 0;\n"
+"  move(y, x);\n"
+"  cur_file_posy = start;\n"
+"  cur_file_posx = x;\n"
 "}\n"
 "\n"
 "static void finish(int sig) {\n"
