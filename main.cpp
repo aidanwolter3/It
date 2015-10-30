@@ -342,7 +342,7 @@ int main(int argc, char *argv[]) {
 
               //reprint all buffer_lines after
               for(int i = cur_file_posy-1; i < buffer_lines.size(); i++) {
-                if(cury+i-cur_file_posy+1 >= winy) {
+                if(cury+i-cur_file_posy >= winy) {
                   break;
                 }
                 move(cury+i-cur_file_posy, 0);

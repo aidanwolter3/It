@@ -1,0 +1,15 @@
+//version number
+string version = "1.0a";
+
+//update the version number
+string ver_prefix = "string version = ";
+if(line.compare(0, ver_prefix.size(), ver_prefix) == 0) {
+  char version_letter = (char)(line[line.size()-3]+1);
+  string newline = line.substr(0, line.size()-3) + version_letter + line.substr(line.size()-2, 2);
+  program_str += newline + '\n';
+}
+
+//write a normal line
+else {
+  program_str += line + '\n';
+}
