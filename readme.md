@@ -10,6 +10,7 @@ It - the editor that edits itself. It is awesome. It is completely configurable 
 * **i** - enter insert mode
 * **w** - write the buffer as the new editor (compile)
 * **s** - save the contents of the buffer to file `main.cpp`
+* **h, j, k, l** - move the cursor left, down, up, and right (like in vim)
 
 ##Insert Mode
 * **ESC** - exit into command mode
